@@ -1,2 +1,4 @@
-# scripkit-player
-A Spotify mini player for scriptkit.js
+# Scripkit Spotify Player
+
+## Description
+A tiny Spotify player for [scriptkit.js](https://github.com/johnlindquist/kit)
