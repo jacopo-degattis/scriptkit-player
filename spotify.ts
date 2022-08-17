@@ -16,7 +16,7 @@ const state: Playback = {
 
 interface Playback {
     name: string,
-    artist: string
+    artist: string,
     artwork_url: string,
 }
 
@@ -110,7 +110,6 @@ const wgt: WidgetAPI = await widget(`
 wgt.onClick((event: any) => {
     if (["play-pause", "play-pause-img"].includes(event.targetId)) {
         spotify.playPause((a) => {
-            log({a: a})
             wgt.setState({ playing: !playing })
         });
     }
@@ -120,17 +119,19 @@ const loop = () => {
 	wgt.setSize(400, 85)
 
     setInterval(async () => {
-        spotify.getTrack((err: any, track: any) => {
-            if (err) return
-            
-            log({info: track})
+        spotify.isRunning((err, isRunning) => {
+            if (!isRunning) return
 
-            spotify.getState((err, state) => {
+            spotify.getTrack((err: any, track: any) => {
                 if (err) return
-
-                wgt.setState({
-                    state: track,
-                    playing: state.state === "playing" ? true : false
+                
+                spotify.getState((err, state) => {
+                    if (err) return
+    
+                    wgt.setState({
+                        state: track,
+                        playing: state.state === "playing" ? true : false
+                    })
                 })
             })
         })
