@@ -72,9 +72,11 @@ const wgt: WidgetAPI = await widget(`
             </div>
         </div>
         <div v-if="config.playPauseBtn" class="flex justify-center items-center btn-container">
+            <img id="previous-track" v-bind:src="previous_icon" />
             <button v-if="state.name" id="play-pause" class="play-pause-btn flex justify-center items-center">
                 <img id="play-pause-img" v-bind:src="playing ? pause_icon : play_icon" />
             </button>
+            <img id="next-track" v-bind:src="next_icon" />
         </div>
     </div>
     <style>
@@ -122,7 +124,7 @@ const wgt: WidgetAPI = await widget(`
             text-overflow: ellipsis;
             white-space: nowrap;
             overflow: hidden;
-            margin-right: 20px;
+            margin-right: 15px;
             flex: 1;
         }
         
@@ -144,7 +146,7 @@ const wgt: WidgetAPI = await widget(`
         }
 
         .btn-container {
-            margin-right: 20px;
+            margin-right: 15px;
         }
 
         .play-pause-btn {
@@ -161,12 +163,26 @@ const wgt: WidgetAPI = await widget(`
             transform: scale(1.05);
         }
 
+        .btn-container #previous-track {
+            margin-right: 5px;
+        }
+
+        .btn-container #next-track {
+            margin-left: 5px;
+        }
+
+        .btn-container img:hover {
+            cursor: pointer;
+        }
+
     </style>
 `, {
     state: {
         config: config,
         pause_icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAHRJREFUSEtjZKAxYKSx+QwDasFzBgYGCSQfZjAwMMyE8kHs6UhyLxgYGCSxhQY+H/xH09DIwMDQABUD0fVo8ljNGrUAOZRGg4hhNBVh5MPRjAYOktGiYnAXFfgqnHQGBoYZSM4HqZUitcKhSnU9oHUyVXwAAOhlOBlZoVRaAAAAAElFTkSuQmCC",
         play_icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAMlJREFUSEvV1UFqAkEQRuHP0+kRvIR7CYiucgUXEcG48hSCRxA8ggQXbgK6SUAZ6AZFcRzHQux9v0dVV//VEHwawXwvEbQwwQif2NWp8loFA/QTdI0PfD8qKRNk7hwdrKqK7hUU3D8M0cPvvaIqgsz8QRdTHMpEjwgyc5HatrwlqSMouP8Yp0HYXhPVFWTmJrWtGO+ztj1LkEVtzE4reRtBWItCHzlsTMM+WmhUhIVdSFw3U/5/pYWzLwu0qllUh3dx9yU7+akVHAG+vzwZybfc1AAAAABJRU5ErkJggg==",
+        previous_icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAOJJREFUSEvt1DFKBEEQheGv1UjEwEgjPYGG4hXECxiIBt5DxUgNNlHQcxh5Az3Vk4YVZBicnXGGTbajhi7qf/W6qoqJT5k4vxWg0+HlWJTkFje4K6XUe+tJson6foWLUspHM7C1gkUASU7xgoN50lYxvQFJdvFYFTfU/g+QpIqpSWfYafFsOCDJIV5x8kfbDAPgE+/Y6OjJwYCvOWB9EkBt0yRHeMPx6Bb9zEGSNVzjCdujfvLvZEn28DB6mzYVJznDM/ZHHbRGNVu4xyXOF14VnSuyR8BytmkPgZ2hqwo6LfoGjTZyGUw0Tg4AAAAASUVORK5CYII=",
+        next_icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAK9JREFUSEvtlLEJAkEQRd+rQbuxIUE0MTGzAxswNbMHEQNbsAgDYzEYWfFA0GMv2OUQbqKFnf3/z5/ZkcphZXwGgqzD/VkUEUdgBMzVdG6NiIh0qX4Jbq2gefRG3QMz9fqLpQRBwr0BK2CrvhQ3UYqgwTsBU/VSiyDhPoANsFbvpSv4dOesTv6SoKpF1ZpcbUzTzO+AZemPdgDGwKLKqsiuyY4J/W3TjgKzaUMFWYuenTh5GSV3ewQAAAAASUVORK5CYII=",
         fallback_icon: "https://community.spotify.com/t5/image/serverpage/image-id/55829iC2AD64ADB887E2A5/image-size/large?v=v2&px=999",
     }
 })
@@ -176,11 +192,15 @@ wgt.onClick((event: any) => {
         spotify.playPause(() => {
             wgt.setState({ playing: !playing })
         });
+    } else if (event.targetId === "previous-track") {
+        spotify.previous((a, b) => log({previous: {a, b}}))
+    } else if (event.targetId === "next-track") {
+        spotify.next((a, b) => log({next: {a, b}}))
     }
 })
 
 const loop = () => {
-    wgt.setSize(400, 85)
+    wgt.setSize(450, 85)
 
     setInterval(() => {
         spotify.isRunning((err: any, isRunning: boolean) => {
@@ -215,6 +235,6 @@ const formatDuration = (duration: number) => {
 }
 
 
-wgt.onResized(() => wgt.setSize(400, 85))
+wgt.onResized(() => wgt.setSize(450, 85))
 
 loop()
