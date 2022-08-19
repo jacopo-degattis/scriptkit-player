@@ -1,4 +1,4 @@
-// Name: spotify-playing
+// Name: spotify-playing-github
 // Description: Show currently playing spotify track
 // Author: Jacopo De Gattis
 
@@ -7,11 +7,26 @@ import { WidgetAPI } from "@johnlindquist/kit/types/pro";
 
 const spotify = await npm("spotify-node-applescript")
 
-const playing = false;
-const state: Playback = {
-    name: "",
-    artist: "",
-    artwork_url: ""
+interface Track {
+    artist: string,
+    album: string,
+    disc_number: number,
+    duration: number,
+    played_count: number,
+    track_number: number,
+    starred: boolean,
+    popularity: number,
+    id: string,
+    name: string,
+    album_artist: string,
+    artwork_url: string,
+    spotify_url: string
+}
+
+interface SpotifyState {
+    volume: number,
+    position: number,
+    state: "playing" | "paused"
 }
 
 interface Playback {
@@ -20,68 +35,120 @@ interface Playback {
     artwork_url: string,
 }
 
+interface Config {
+    progressBar: boolean,
+    playPauseBtn: boolean,
+    nextPrevArrows: boolean
+}
+
+const playing: boolean = false;
+const state: Playback = {
+    name: "",
+    artist: "",
+    artwork_url: ""
+}
+
+const config: Config = {
+    progressBar: true,
+    playPauseBtn: true,
+    nextPrevArrows: true,
+}
+
 const wgt: WidgetAPI = await widget(`
-	<div class="px-1 flex flex-row w-full justify-between">
-        <div class="cover-img" v-bind:style="{'backgroundImage': state.artwork_url ? 'url(' + state.artwork_url + ')' : 'url(' + fallback_icon + ')' }"></div>
-        <div class="flex flex-row justify-start track-infos left-container">
-            <div class="flex flex-col ml-4 justify-center">
-                <pre class="font-inter">{{state.name ? state.name : "No music playing"}}</pre>
-                <pre class="text-xs">{{state.artist && state.artist}}</pre>
+    <div class="px-1 flex flex-row w-full justify-between">
+        <div
+            class="cover-img"
+            v-bind:style="{'backgroundImage': state.artwork_url ? 'url(' + state.artwork_url + ')' : 'url(' + fallback_icon + ')' }"
+        ></div>
+        <div class="flex flex-row justify-start left-container">
+            <div class="flex flex-col ml-4 justify-center w-full details-wrapper">
+                <pre class="track-name">{{state.name ? state.name : "No music playing"}}</pre>
+                <pre class="artist-name text-xs">{{state.artist && state.artist}}</pre>
+                <div v-if="state.name && config.progressBar" class="progress-bar">
+                    <div class="progress-bar-inner" v-bind:style="{'width': percentage + '%'}"></div>
+                </div>
+                <div v-if="state.name && config.progressBar" class="duration-container flex flex-row justify-between">
+                    <small class="duration-label">{{position}}</small>
+                    <small class="duration-label">{{trackDuration}}</small>
+                </div>
             </div>
         </div>
-        <div class="flex justify-center items-center btn-container">
+        <div v-if="config.playPauseBtn" class="flex justify-center items-center btn-container">
+            <img v-if="state.name && config.nextPrevArrows" id="previous-track" v-bind:src="previous_icon" />
             <button v-if="state.name" id="play-pause" class="play-pause-btn flex justify-center items-center">
                 <img id="play-pause-img" v-bind:src="playing ? pause_icon : play_icon" />
             </button>
+            <img v-if="state.name && config.nextPrevArrows" id="next-track" v-bind:src="next_icon" />
         </div>
-	</div>
-	<style>
-		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;700&display=swap');
+    </div>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;700&display=swap');
 
         * {
             user-select: none;
+            font-family: 'Inter';
+        }
+
+        .progress-bar {
+            margin: 2px 0;
+            background-color: #f5f5f522;
+            height: 2.5px;
+            border-radius: 2px;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .duration-container{
+            width: 100%;
+        }
+
+        .progress-bar-inner {
+            background-color: #f5f5f5;
+            border-radius: 2px;
+            height: 100%;
         }
 
         .cover-img {
             width: 75px;
             height: 75px;
             border-radius: 10px;
-            box-shadow: 7px 7px 5px black;
+            box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.4);
             background-size: 100%;
             transition: background-image 1s ease-in;
         }
 
+        .details-wrapper {
+            max-width: 100%;
+            overflow: hidden;
+        }
+
         .left-container {
-            width: 200px;
             text-overflow: ellipsis;
             white-space: nowrap;
             overflow: hidden;
-            margin-right: 20px;
+            margin-right: 15px;
+            flex: 1;
+        }
+        
+        .track-name {
+            font-family: 'Inter';
+            font-weight: bold;
+            font-size: 100%;
         }
 
-		.track-infos img {
-			border-radius: 10px;
-			box-shadow: 7px 7px 5px black;
-		}
-		
-		pre:first-child {
-			font-family: 'Inter';
-			font-weight: bold;
-			font-size: 100%;
-		}
+        .artist-name {
+            font-family: 'Inter';
+            font-weight: light;
+            font-size: 3.0vw;
+        }
 
-		pre:last-child {
-			font-family: 'Inter';
-			font-weight: light;
-			font-size: 3.0vw;
-		}
-
-		svg {
-			margin-top: 20px;
-		}
+        .duration-label {
+            font-size: 2.0vw;
+            color: #f5f5f5aa;
+        }
 
         .btn-container {
-            margin-right: 20px;
+            margin-right: 15px;
         }
 
         .play-pause-btn {
@@ -91,46 +158,71 @@ const wgt: WidgetAPI = await widget(`
             height: 50px;
             width: 50px;
             transition-duration: 0.3s;
-            box-shadow: 7px 7px 5px black;
+            box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.4);
         }
 
         .play-pause-btn:hover {
             transform: scale(1.05);
         }
 
-	</style>
+        .btn-container #previous-track {
+            margin-right: 5px;
+        }
+
+        .btn-container #next-track {
+            margin-left: 5px;
+        }
+
+        .btn-container img:hover {
+            cursor: pointer;
+        }
+
+    </style>
 `, {
     state: {
+        config: config,
         pause_icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAHRJREFUSEtjZKAxYKSx+QwDasFzBgYGCSQfZjAwMMyE8kHs6UhyLxgYGCSxhQY+H/xH09DIwMDQABUD0fVo8ljNGrUAOZRGg4hhNBVh5MPRjAYOktGiYnAXFfgqnHQGBoYZSM4HqZUitcKhSnU9oHUyVXwAAOhlOBlZoVRaAAAAAElFTkSuQmCC",
         play_icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAMlJREFUSEvV1UFqAkEQRuHP0+kRvIR7CYiucgUXEcG48hSCRxA8ggQXbgK6SUAZ6AZFcRzHQux9v0dVV//VEHwawXwvEbQwwQif2NWp8loFA/QTdI0PfD8qKRNk7hwdrKqK7hUU3D8M0cPvvaIqgsz8QRdTHMpEjwgyc5HatrwlqSMouP8Yp0HYXhPVFWTmJrWtGO+ztj1LkEVtzE4reRtBWItCHzlsTMM+WmhUhIVdSFw3U/5/pYWzLwu0qllUh3dx9yU7+akVHAG+vzwZybfc1AAAAABJRU5ErkJggg==",
-        fallback_icon: "https://community.spotify.com/t5/image/serverpage/image-id/55829iC2AD64ADB887E2A5/image-size/large?v=v2&px=999"
+        previous_icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAOJJREFUSEvt1DFKBEEQheGv1UjEwEgjPYGG4hXECxiIBt5DxUgNNlHQcxh5Az3Vk4YVZBicnXGGTbajhi7qf/W6qoqJT5k4vxWg0+HlWJTkFje4K6XUe+tJson6foWLUspHM7C1gkUASU7xgoN50lYxvQFJdvFYFTfU/g+QpIqpSWfYafFsOCDJIV5x8kfbDAPgE+/Y6OjJwYCvOWB9EkBt0yRHeMPx6Bb9zEGSNVzjCdujfvLvZEn28DB6mzYVJznDM/ZHHbRGNVu4xyXOF14VnSuyR8BytmkPgZ2hqwo6LfoGjTZyGUw0Tg4AAAAASUVORK5CYII=",
+        next_icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAK9JREFUSEvtlLEJAkEQRd+rQbuxIUE0MTGzAxswNbMHEQNbsAgDYzEYWfFA0GMv2OUQbqKFnf3/z5/ZkcphZXwGgqzD/VkUEUdgBMzVdG6NiIh0qX4Jbq2gefRG3QMz9fqLpQRBwr0BK2CrvhQ3UYqgwTsBU/VSiyDhPoANsFbvpSv4dOesTv6SoKpF1ZpcbUzTzO+AZemPdgDGwKLKqsiuyY4J/W3TjgKzaUMFWYuenTh5GSV3ewQAAAAASUVORK5CYII=",
+        fallback_icon: "https://community.spotify.com/t5/image/serverpage/image-id/55829iC2AD64ADB887E2A5/image-size/large?v=v2&px=999",
     }
 })
 
 wgt.onClick((event: any) => {
     if (["play-pause", "play-pause-img"].includes(event.targetId)) {
-        spotify.playPause((a) => {
+        spotify.playPause(() => {
             wgt.setState({ playing: !playing })
         });
+    } else if (event.targetId === "previous-track") {
+        spotify.previous()
+    } else if (event.targetId === "next-track") {
+        spotify.next()
     }
 })
 
 const loop = () => {
-	wgt.setSize(400, 85)
+    wgt.setSize(config.nextPrevArrows ? 450 : 400, 85)
 
-    setInterval(async () => {
-        spotify.isRunning((err, isRunning) => {
+    setInterval(() => {
+        spotify.isRunning((err: any, isRunning: boolean) => {
             if (!isRunning) return
 
-            spotify.getTrack((err: any, track: any) => {
+            spotify.getTrack((err: any, track: Track) => {
                 if (err) return
-                
-                spotify.getState((err, state) => {
+
+                spotify.getState((err: any, state: SpotifyState) => {
                     if (err) return
-    
+
+                    const { position } = state;
+                    const trackLenght = Math.floor(track?.duration / 1000);
+
                     wgt.setState({
                         state: track,
-                        playing: state.state === "playing" ? true : false
+                        playing: state.state === "playing",
+                        percentage: trackLenght && (position / trackLenght) * 100,
+                        position: formatDuration(position),
+                        trackDuration: formatDuration(trackLenght),
                     })
                 })
             })
@@ -138,6 +230,13 @@ const loop = () => {
     }, 1000)
 }
 
-wgt.onResized(() => wgt.setSize(400, 85))
+const formatDuration = (duration: number) => {
+    const minutes = Math.floor(duration / 60)
+    const seconds = duration - (minutes * 60)
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`
+}
+
+
+wgt.onResized(() => wgt.setSize(config.nextPrevArrows ? 450 : 400, 85))
 
 loop()
