@@ -38,6 +38,7 @@ interface Playback {
 interface Config {
     progressBar: boolean,
     playPauseBtn: boolean,
+    nextPrevArrows: boolean
 }
 
 const playing: boolean = false;
@@ -50,6 +51,7 @@ const state: Playback = {
 const config: Config = {
     progressBar: true,
     playPauseBtn: true,
+    nextPrevArrows: true,
 }
 
 const wgt: WidgetAPI = await widget(`
@@ -72,11 +74,11 @@ const wgt: WidgetAPI = await widget(`
             </div>
         </div>
         <div v-if="config.playPauseBtn" class="flex justify-center items-center btn-container">
-            <img id="previous-track" v-bind:src="previous_icon" />
+            <img v-if="state.name && config.nextPrevArrows" id="previous-track" v-bind:src="previous_icon" />
             <button v-if="state.name" id="play-pause" class="play-pause-btn flex justify-center items-center">
                 <img id="play-pause-img" v-bind:src="playing ? pause_icon : play_icon" />
             </button>
-            <img id="next-track" v-bind:src="next_icon" />
+            <img v-if="state.name && config.nextPrevArrows" id="next-track" v-bind:src="next_icon" />
         </div>
     </div>
     <style>
@@ -193,14 +195,14 @@ wgt.onClick((event: any) => {
             wgt.setState({ playing: !playing })
         });
     } else if (event.targetId === "previous-track") {
-        spotify.previous((a, b) => log({previous: {a, b}}))
+        spotify.previous()
     } else if (event.targetId === "next-track") {
-        spotify.next((a, b) => log({next: {a, b}}))
+        spotify.next()
     }
 })
 
 const loop = () => {
-    wgt.setSize(450, 85)
+    wgt.setSize(config.nextPrevArrows ? 450 : 400, 85)
 
     setInterval(() => {
         spotify.isRunning((err: any, isRunning: boolean) => {
@@ -235,6 +237,6 @@ const formatDuration = (duration: number) => {
 }
 
 
-wgt.onResized(() => wgt.setSize(450, 85))
+wgt.onResized(() => wgt.setSize(config.nextPrevArrows ? 450 : 400, 85))
 
 loop()
